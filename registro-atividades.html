@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Registro de Atividades</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #1a1a2e; min-height: 100vh; }
+  header { background: linear-gradient(135deg, #1a1a2e, #16213e); color: white; padding: 18px 28px; display: flex; align-items: center; gap: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.25); }
+  header h1 { font-size: 1.3rem; font-weight: 700; }
+  header small { font-size: 0.78rem; opacity: 0.6; display: block; margin-top: 2px; }
+  .tabs { display: flex; background: #fff; border-bottom: 2px solid #e0e0e0; padding: 0 28px; overflow-x: auto; }
+  .tab { padding: 13px 20px; cursor: pointer; font-weight: 600; color: #999; border-bottom: 3px solid transparent; transition: all 0.2s; margin-bottom: -2px; font-size: 0.93rem; white-space: nowrap; }
+  .tab.active { color: #2563eb; border-bottom-color: #2563eb; }
+  .tab:hover:not(.active) { color: #444; }
+  .page { display: none; padding: 24px; max-width: 760px; margin: 0 auto; }
+  .page.active { display: block; }
+  .card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.07); margin-bottom: 18px; }
+  .card h2 { font-size: 1rem; color: #555; margin-bottom: 16px; font-weight: 700; }
+  label { display: block; font-size: 0.82rem; font-weight: 700; color: #666; margin-bottom: 5px; margin-top: 14px; }
+  label:first-of-type { margin-top: 0; }
+  select, input[type="text"], input[type="date"] { width: 100%; padding: 11px 13px; border: 1.5px solid #ddd; border-radius: 10px; font-size: 0.97rem; background: #fafafa; transition: border 0.2s; color: #1a1a2e; }
+  select:focus, input:focus { outline: none; border-color: #2563eb; background: #fff; }
+  .btn-row { display: flex; gap: 12px; margin-top: 20px; }
+  button { flex: 1; padding: 14px; border: none; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-start { background: linear-gradient(135deg, #16a34a, #22c55e); color: white; }
+  .btn-start:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(34,197,94,0.35); }
+  .btn-end { background: linear-gradient(135deg, #dc2626, #ef4444); color: white; }
+  .btn-end:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(239,68,68,0.35); }
+  button:disabled { background: #d1d5db; color: #9ca3af; cursor: not-allowed; transform: none; box-shadow: none; }
+  .status-box { border-radius: 12px; padding: 14px 18px; font-weight: 600; font-size: 0.92rem; display: flex; align-items: center; gap: 10px; margin-top: 16px; }
+  .status-idle { background: #f1f5f9; color: #64748b; }
+  .status-running { background: #dcfce7; color: #15803d; }
+  .status-done { background: #dbeafe; color: #1d4ed8; }
+  .status-error { background: #fee2e2; color: #dc2626; }
+  .pulse { width: 10px; height: 10px; border-radius: 50%; background: #16a34a; flex-shrink: 0; animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.4;transform:scale(1.5)} }
+  .filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: flex-end; }
+  .filter-row > div { flex: 1; min-width: 130px; }
+  .filter-row button { flex: none; padding: 11px 18px; font-size: 0.88rem; border-radius: 10px; }
+  .btn-filter { background: #2563eb; color: white; }
+  .btn-filter:hover { background: #1d4ed8; }
+  .btn-export { background: #059669; color: white; }
+  .btn-export:hover { background: #047857; }
+  .summary { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .summary-item { background: #f8fafc; border-radius: 10px; padding: 10px 16px; flex: 1; min-width: 90px; text-align: center; }
+  .summary-item .num { font-size: 1.5rem; font-weight: 800; color: #2563eb; }
+  .summary-item .lbl { font-size: 0.73rem; color: #888; margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  th { background: #f8fafc; padding: 9px 10px; text-align: left; font-size: 0.73rem; color: #888; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 2px solid #eee; }
+  td { padding: 9px 10px; border-bottom: 1px solid #f0f0f0; color: #333; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafbff; }
+  .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+  .badge-ok { background: #dcfce7; color: #16a34a; }
+  .badge-open { background: #fef9c3; color: #b45309; }
+  .table-wrap { overflow-x: auto; }
+  .empty-msg { text-align: center; padding: 36px; color: #bbb; font-size: 0.9rem; }
+  .colab-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; min-height: 36px; }
+  .colab-chip { background: #eff6ff; color: #2563eb; border: 1.5px solid #bfdbfe; border-radius: 20px; padding: 5px 14px; font-size: 0.85rem; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .colab-chip .rm { background: none; border: none; color: #dc2626; font-size: 1rem; padding: 0; cursor: pointer; flex: none; width: auto; height: auto; line-height: 1; }
+  .colab-add { display: flex; gap: 8px; }
+  .colab-add input { flex: 1; }
+  .colab-add button { flex: none; background: #2563eb; color: white; padding: 11px 18px; border-radius: 10px; font-size: 0.9rem; }
+  #toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(80px); background: #1a1a2e; color: white; padding: 11px 24px; border-radius: 30px; font-weight: 600; font-size: 0.93rem; box-shadow: 0 4px 20px rgba(0,0,0,0.25); transition: transform 0.3s ease; z-index: 999; white-space: nowrap; }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #loading { position: fixed; inset: 0; background: rgba(255,255,255,0.92); display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 1rem; font-weight: 600; color: #2563eb; z-index: 1000; gap: 12px; }
+  .spinner { width: 28px; height: 28px; border: 3px solid #bfdbfe; border-top-color: #2563eb; border-radius: 50%; animation: spin 0.7s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .online-dot { width: 8px; height: 8px; border-radius: 50%; background: #22c55e; display: inline-block; margin-right: 4px; }
+  @media(max-width:560px) { .page{padding:12px} .filter-row{flex-direction:column} .btn-row{flex-direction:column} table{font-size:0.78rem} th,td{padding:7px 6px} }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <div>Conectando ao banco de dados...</div>
+</div>
+
+<header>
+  <span style="font-size:1.8rem">⏱️</span>
+  <div>
+    <h1>Registro de Atividades</h1>
+    <small id="syncStatus">Conectando...</small>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('registro')">📋 Registro</div>
+  <div class="tab" onclick="switchTab('relatorio')">📊 Relatório</div>
+  <div class="tab" onclick="switchTab('colaboradores')">👥 Colaboradores</div>
+</div>
+
+<!-- REGISTRO -->
+<div id="page-registro" class="page active">
+  <div class="card">
+    <h2>👤 Identificação</h2>
+    <label>Selecione o colaborador</label>
+    <select id="selColaborador"><option value="">— escolha o colaborador —</option></select>
+    <label>Descrição da atividade</label>
+    <input type="text" id="descAtividade" placeholder="Ex: Montagem linha A" />
+  </div>
+  <div class="card">
+    <h2>🎯 Controle</h2>
+    <div id="statusBox" class="status-box status-idle"><span>⚪</span> Nenhuma atividade em andamento</div>
+    <div class="btn-row">
+      <button class="btn-start" id="btnStart" onclick="iniciarAtividade()">▶ Iniciar</button>
+      <button class="btn-end" id="btnEnd" onclick="finalizarAtividade()" disabled>⏹ Finalizar</button>
+    </div>
+  </div>
+</div>
+
+<!-- RELATÓRIO -->
+<div id="page-relatorio" class="page">
+  <div class="card">
+    <h2>📊 Relatório Geral</h2>
+    <div class="filter-row">
+      <div><label style="margin-top:0">Colaborador</label><input type="text" id="filtroNome" placeholder="Filtrar por nome..." /></div>
+      <div><label style="margin-top:0">Data</label><input type="date" id="filtroData" /></div>
+      <button class="btn-filter" onclick="carregarRelatorio()">🔍 Buscar</button>
+      <button class="btn-export" onclick="exportarCSV()">⬇ CSV</button>
+    </div>
+    <div class="summary" id="summaryBox"></div>
+    <div class="table-wrap"><div id="tabelaContainer"><div class="empty-msg">Clique em Buscar para carregar os registros.</div></div></div>
+  </div>
+</div>
+
+<!-- COLABORADORES -->
+<div id="page-colaboradores" class="page">
+  <div class="card">
+    <h2>👥 Gerenciar Colaboradores</h2>
+    <div class="colab-list" id="colabList"><div class="spinner" style="margin:8px auto"></div></div>
+    <div class="colab-add">
+      <input type="text" id="novoColab" placeholder="Nome do novo colaborador..." maxlength="60" onkeydown="if(event.key==='Enter')adicionarColaborador()" />
+      <button onclick="adicionarColaborador()">+ Adicionar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+var SUPABASE_URL = 'https://kpmdweycxowafvmhlfiu.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtwbWR3ZXljeG93YWZ2bWhsZml1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE4NDc5MTMsImV4cCI6MjA5NzQyMzkxM30.UEeqQm5Q6YVowV-kbehDByA3x46YGNMbdqcNb78Z1-w';
+
+var atividadeAtual = null;
+var relatorioCache = [];
+
+// ── API helpers ───────────────────────────────────────────────────────────────
+function headers() {
+  return { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY };
+}
+
+function apiGet(table, params) {
+  var url = SUPABASE_URL + '/rest/v1/' + table + '?' + (params||'');
+  return fetch(url, { headers: headers() }).then(function(r){ return r.json(); });
+}
+
+function apiPost(table, data) {
+  return fetch(SUPABASE_URL + '/rest/v1/' + table, {
+    method: 'POST', headers: Object.assign({}, headers(), {'Prefer': 'return=representation'}),
+    body: JSON.stringify(data)
+  }).then(function(r){ return r.json(); });
+}
+
+function apiPatch(table, id, data) {
+  return fetch(SUPABASE_URL + '/rest/v1/' + table + '?id=eq.' + id, {
+    method: 'PATCH', headers: Object.assign({}, headers(), {'Prefer': 'return=representation'}),
+    body: JSON.stringify(data)
+  }).then(function(r){ return r.json(); });
+}
+
+function apiDelete(table, col, val) {
+  return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + col + '=eq.' + encodeURIComponent(val), {
+    method: 'DELETE', headers: headers()
+  });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', function() {
+  Promise.all([carregarColaboradores()])
+    .then(function() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('syncStatus').innerHTML = '<span class="online-dot"></span>Conectado — dados em tempo real';
+    })
+    .catch(function() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('syncStatus').textContent = '⚠️ Erro de conexão';
+    });
+});
+
+// ── Colaboradores ─────────────────────────────────────────────────────────────
+function carregarColaboradores() {
+  return apiGet('colaboradores', 'order=nome.asc').then(function(data) {
+    if (!Array.isArray(data)) { console.error('Erro ao carregar colaboradores', data); return; }
+    var sel = document.getElementById('selColaborador');
+    var val = sel.value;
+    sel.innerHTML = '<option value="">— escolha o colaborador —</option>';
+    data.forEach(function(c) {
+      var opt = document.createElement('option');
+      opt.value = c.nome; opt.textContent = c.nome;
+      if (c.nome === val) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    renderColabChips(data);
+  });
+}
+
+function renderColabChips(lista) {
+  var div = document.getElementById('colabList');
+  div.innerHTML = '';
+  if (!lista || !lista.length) { div.innerHTML = '<p style="color:#aaa;font-size:0.9rem">Nenhum colaborador cadastrado.</p>'; return; }
+  lista.forEach(function(c) {
+    var chip = document.createElement('div'); chip.className = 'colab-chip';
+    chip.innerHTML = c.nome + ' <button class="rm" onclick="removerColaborador(' + c.id + ',\'' + c.nome.replace(/'/g,"\\'") + '\')">✕</button>';
+    div.appendChild(chip);
+  });
+}
+
+function adicionarColaborador() {
+  var input = document.getElementById('novoColab');
+  var nome = input.value.trim();
+  if (!nome) { toast('⚠️ Digite o nome'); return; }
+  apiPost('colaboradores', { nome: nome }).then(function(res) {
+    if (res && res[0] && res[0].id) {
+      input.value = '';
+      carregarColaboradores();
+      toast('✅ ' + nome + ' adicionado!');
+    } else {
+      toast('❌ Erro ao adicionar. Nome já existe?');
+    }
+  });
+}
+
+function removerColaborador(id, nome) {
+  if (!confirm('Remover "' + nome + '"?')) return;
+  apiDelete('colaboradores', 'id', id).then(function() {
+    carregarColaboradores();
+    toast('🗑️ ' + nome + ' removido');
+  });
+}
+
+// ── Áudio ─────────────────────────────────────────────────────────────────────
+function bipe(tipo) {
+  try {
+    var ctx = new (window.AudioContext || window.webkitAudioContext)();
+    var osc = ctx.createOscillator(); var gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    if (tipo === 'inicio') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600, ctx.currentTime);
+      osc.frequency.setValueAtTime(950, ctx.currentTime + 0.13);
+      gain.gain.setValueAtTime(0.45, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.38);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.38);
+    } else {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(950, ctx.currentTime);
+      osc.frequency.setValueAtTime(480, ctx.currentTime + 0.16);
+      gain.gain.setValueAtTime(0.45, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.44);
+      osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.44);
+    }
+  } catch(e) {}
+}
+
+// ── Registro ──────────────────────────────────────────────────────────────────
+function iniciarAtividade() {
+  var nome = document.getElementById('selColaborador').value;
+  var desc = document.getElementById('descAtividade').value.trim();
+  if (!nome) { toast('⚠️ Selecione o colaborador'); return; }
+  if (!desc) { toast('⚠️ Informe a atividade'); return; }
+
+  setControles(true);
+  var sb = document.getElementById('statusBox');
+  sb.className = 'status-box status-running';
+  sb.innerHTML = '<div class="pulse"></div> Salvando...';
+
+  apiPost('atividades', { nome: nome, descricao: desc, inicio: new Date().toISOString() })
+    .then(function(res) {
+      if (res && res[0] && res[0].id) {
+        atividadeAtual = res[0];
+        bipe('inicio');
+        sb.innerHTML = '<div class="pulse"></div> <b>' + nome + '</b> — iniciado às ' + fmtTime(atividadeAtual.inicio);
+        toast('✅ Atividade iniciada!');
+      } else {
+        sb.className = 'status-box status-error';
+        sb.innerHTML = '❌ Erro ao salvar. Verifique a conexão.';
+        setControles(false);
+      }
+    }).catch(function() {
+      sb.className = 'status-box status-error';
+      sb.innerHTML = '❌ Sem conexão com o servidor.';
+      setControles(false);
+    });
+}
+
+function finalizarAtividade() {
+  if (!atividadeAtual) return;
+  var sb = document.getElementById('statusBox');
+  sb.innerHTML = '<div class="spinner"></div> Salvando...';
+
+  var fim = new Date().toISOString();
+  apiPatch('atividades', atividadeAtual.id, { fim: fim })
+    .then(function(res) {
+      if (res && res[0] && res[0].id) {
+        bipe('fim');
+        sb.className = 'status-box status-done';
+        sb.innerHTML = '✅ Finalizado às ' + fmtTime(fim) + ' — duração: ' + duracao(atividadeAtual.inicio, fim);
+        atividadeAtual = null;
+        setControles(false);
+        document.getElementById('descAtividade').value = '';
+        setTimeout(function() {
+          sb.className = 'status-box status-idle';
+          sb.innerHTML = '⚪ Nenhuma atividade em andamento';
+        }, 5000);
+        toast('🏁 Atividade registrada!');
+      } else {
+        sb.className = 'status-box status-error';
+        sb.innerHTML = '❌ Erro ao finalizar. Tente novamente.';
+      }
+    }).catch(function() {
+      sb.className = 'status-box status-error';
+      sb.innerHTML = '❌ Sem conexão com o servidor.';
+    });
+}
+
+function setControles(em) {
+  document.getElementById('btnStart').disabled = em;
+  document.getElementById('btnEnd').disabled = !em;
+  document.getElementById('selColaborador').disabled = em;
+  document.getElementById('descAtividade').disabled = em;
+}
+
+// ── Relatório ─────────────────────────────────────────────────────────────────
+function carregarRelatorio() {
+  var fn = document.getElementById('filtroNome').value.trim();
+  var fd = document.getElementById('filtroData').value;
+  document.getElementById('tabelaContainer').innerHTML = '<div class="empty-msg"><div class="spinner" style="margin:0 auto 10px"></div>Carregando...</div>';
+
+  var params = 'order=inicio.desc&limit=500';
+  if (fn) params += '&nome=ilike.*' + encodeURIComponent(fn) + '*';
+  if (fd) params += '&inicio=gte.' + fd + 'T00:00:00Z&inicio=lte.' + fd + 'T23:59:59Z';
+
+  apiGet('atividades', params).then(function(lista) {
+    if (!Array.isArray(lista)) { document.getElementById('tabelaContainer').innerHTML = '<div class="empty-msg">❌ Erro ao carregar dados.</div>'; return; }
+    relatorioCache = lista;
+    renderTabela(lista);
+  });
+}
+
+function renderTabela(lista) {
+  var totalMs = lista.filter(function(r){return r.fim}).reduce(function(acc,r){return acc+(new Date(r.fim)-new Date(r.inicio))},0);
+  var h = Math.floor(totalMs/3600000), m = Math.round((totalMs%3600000)/60000);
+  document.getElementById('summaryBox').innerHTML =
+    '<div class="summary-item"><div class="num">'+lista.length+'</div><div class="lbl">Registros</div></div>' +
+    '<div class="summary-item"><div class="num">'+lista.filter(function(r){return r.fim}).length+'</div><div class="lbl">Concluídas</div></div>' +
+    '<div class="summary-item"><div class="num">'+lista.filter(function(r){return !r.fim}).length+'</div><div class="lbl">Em aberto</div></div>' +
+    '<div class="summary-item"><div class="num">'+h+'h'+String(m).padStart(2,'0')+'m</div><div class="lbl">Tempo total</div></div>';
+
+  if (!lista.length) { document.getElementById('tabelaContainer').innerHTML = '<div class="empty-msg">Nenhum registro encontrado.</div>'; return; }
+
+  var html = '<table><thead><tr><th>Colaborador</th><th>Atividade</th><th>Início</th><th>Fim</th><th>Duração</th><th>Status</th></tr></thead><tbody>';
+  lista.forEach(function(r) {
+    var fim = r.fim ? fmtDatetime(r.fim) : '—';
+    var dur = r.fim ? duracao(r.inicio, r.fim) : '—';
+    var badge = r.fim ? '<span class="badge badge-ok">Concluída</span>' : '<span class="badge badge-open">Em aberto</span>';
+    html += '<tr><td><b>'+esc(r.nome)+'</b></td><td>'+esc(r.descricao)+'</td><td>'+fmtDatetime(r.inicio)+'</td><td>'+fim+'</td><td>'+dur+'</td><td>'+badge+'</td></tr>';
+  });
+  document.getElementById('tabelaContainer').innerHTML = html + '</tbody></table>';
+}
+
+function exportarCSV() {
+  if (!relatorioCache.length) { toast('Clique em Buscar primeiro'); return; }
+  var csv = '\uFEFFColaborador,Atividade,Início,Fim,Duração,Status\n';
+  relatorioCache.forEach(function(r) {
+    csv += '"'+r.nome+'","'+r.descricao+'","'+fmtDatetime(r.inicio)+'","'+(r.fim?fmtDatetime(r.fim):'')+'","'+(r.fim?duracao(r.inicio,r.fim):'')+'","'+(r.fim?'Concluída':'Em aberto')+'"\n';
+  });
+  var blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a'); a.href=url; a.download='atividades_'+new Date().toISOString().slice(0,10)+'.csv'; a.click(); URL.revokeObjectURL(url);
+  toast('📥 CSV exportado!');
+}
+
+// ── Utilitários ───────────────────────────────────────────────────────────────
+function fmtTime(iso) { return new Date(iso).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+function fmtDatetime(iso) { return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit'}); }
+function duracao(i,f) { var d=Math.floor((new Date(f)-new Date(i))/1000); return String(Math.floor(d/3600)).padStart(2,'0')+':'+String(Math.floor((d%3600)/60)).padStart(2,'0')+':'+String(d%60).padStart(2,'0'); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function toast(msg) { var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(function(){t.classList.remove('show')},2800); }
+function switchTab(tab) {
+  var tabs=['registro','relatorio','colaboradores'];
+  document.querySelectorAll('.tab').forEach(function(el,i){ el.classList.toggle('active',tabs[i]===tab); });
+  tabs.forEach(function(p){ document.getElementById('page-'+p).classList.toggle('active',p===tab); });
+  if (tab==='colaboradores') carregarColaboradores();
+}
+</script>
+</body>
+</html>
